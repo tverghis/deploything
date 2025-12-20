@@ -18,7 +18,7 @@ pub async fn pull(docker: &Docker, name: &str, tag: &str) -> Result<(), DockerAp
 
     if let Err(e) = infos {
         error!("Pull failed: {e}");
-        return Err(DockerApiError::ImagePulledFailed {
+        return Err(DockerApiError::ImagePullFailed {
             image: name.to_string(),
             tag: tag.to_string(),
         });

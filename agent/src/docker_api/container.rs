@@ -28,7 +28,7 @@ pub async fn create(
         }
         Err(e) => {
             error!("Container create failed: {e}");
-            Err(DockerApiError::ContainerCreateError {
+            Err(DockerApiError::ContainerCreateFailed {
                 image: image_name.to_string(),
             })
         }
