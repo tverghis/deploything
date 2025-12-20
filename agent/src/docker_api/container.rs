@@ -1,5 +1,7 @@
 use bollard::{
-    Docker, query_parameters::CreateContainerOptionsBuilder, secret::ContainerCreateBody,
+    Docker,
+    query_parameters::{CreateContainerOptionsBuilder, StartContainerOptions},
+    secret::ContainerCreateBody,
 };
 use tracing::{error, info, instrument};
 
@@ -30,6 +32,27 @@ pub async fn create(
             error!("Container create failed: {e}");
             Err(DockerApiError::ContainerCreateFailed {
                 image: image_name.to_string(),
+            })
+        }
+    }
+}
+
+#[instrument(skip(docker))]
+pub async fn start(docker: &Docker, container_name: &str) -> Result<(), DockerApiError> {
+    info!("Starting container");
+
+    match docker
+        .start_container(container_name, None::<StartContainerOptions>)
+        .await
+    {
+        Ok(_) => {
+            info!("Container start complete");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Start container failed: {e}");
+            Err(DockerApiError::ContainerStartFailed {
+                container_name: container_name.to_string(),
             })
         }
     }
