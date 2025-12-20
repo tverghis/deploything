@@ -9,4 +9,8 @@ async fn main() {
     docker_api::image::pull(&docker, "alpine", "3")
         .await
         .unwrap();
+
+    docker_api::container::create(&docker, "alpine", "alpine:3")
+        .await
+        .unwrap();
 }
