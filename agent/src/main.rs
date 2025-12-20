@@ -6,6 +6,7 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let docker = bollard::Docker::connect_with_defaults().unwrap();
+
     docker_api::image::pull(&docker, "alpine", "3")
         .await
         .unwrap();
@@ -15,6 +16,10 @@ async fn main() {
         .unwrap();
 
     docker_api::container::start(&docker, "alpine")
+        .await
+        .unwrap();
+
+    docker_api::container::stop(&docker, "alpine")
         .await
         .unwrap();
 }

@@ -8,4 +8,6 @@ pub enum DockerApiError {
     ContainerCreateFailed { image: String },
     #[error("failed to start container {container_name}")]
     ContainerStartFailed { container_name: String },
+    #[error("failed to stop container {container_name}")]
+    ContainerStopFailed { container_name: String },
 }

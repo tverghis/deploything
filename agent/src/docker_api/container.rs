@@ -1,6 +1,8 @@
 use bollard::{
     Docker,
-    query_parameters::{CreateContainerOptionsBuilder, StartContainerOptions},
+    query_parameters::{
+        CreateContainerOptionsBuilder, StartContainerOptions, StopContainerOptionsBuilder,
+    },
     secret::ContainerCreateBody,
 };
 use tracing::{error, info, instrument};
@@ -52,6 +54,27 @@ pub async fn start(docker: &Docker, container_name: &str) -> Result<(), DockerAp
         Err(e) => {
             error!("Start container failed: {e}");
             Err(DockerApiError::ContainerStartFailed {
+                container_name: container_name.to_string(),
+            })
+        }
+    }
+}
+
+#[instrument(skip(docker))]
+pub async fn stop(docker: &Docker, container_name: &str) -> Result<(), DockerApiError> {
+    info!("Stopping container");
+
+    // TODO: allow configuration of timeout
+    let options = StopContainerOptionsBuilder::new().t(10).build();
+
+    match docker.stop_container(container_name, Some(options)).await {
+        Ok(_) => {
+            info!("Container stopped");
+            Ok(())
+        }
+        Err(e) => {
+            error!("Container stop failed: {e}");
+            Err(DockerApiError::ContainerStopFailed {
                 container_name: container_name.to_string(),
             })
         }
