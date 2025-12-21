@@ -6,8 +6,8 @@ pub enum DockerApiError {
     ImagePullFailed { image: String, tag: String },
     #[error("failed to create container for image {image}")]
     ContainerCreateFailed { image: String },
-    #[error("failed to start container {container_name}")]
-    ContainerStartFailed { container_name: String },
-    #[error("failed to stop container {container_name}")]
-    ContainerStopFailed { container_name: String },
+    #[error("failed to start container {container_id}")]
+    ContainerStartFailed { container_id: String },
+    #[error("failed to stop container {container_id}")]
+    ContainerStopFailed { container_id: String },
 }

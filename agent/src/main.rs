@@ -6,7 +6,7 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let docker = bollard::Docker::connect_with_defaults().unwrap();
-    let container = Container::spawn_from_image(&docker, "alpine", "3")
+    let container = Container::spawn_from_image(&docker, "mccutchen/go-httpbin", "latest")
         .await
         .unwrap();
 

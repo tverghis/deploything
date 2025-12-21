@@ -9,7 +9,7 @@ mod image;
 
 pub struct Container<'a> {
     docker: &'a Docker,
-    name: String,
+    id: String,
 }
 
 impl<'a> Container<'a> {
@@ -19,25 +19,20 @@ impl<'a> Container<'a> {
         image_name: &str,
         tag: &str,
     ) -> Result<Self, DockerApiError> {
-        let container = Self {
-            docker,
-            name: format!("{image_name}-{tag}"),
-        };
-
         image::pull(docker, image_name, tag).await?;
-        container::create(
-            docker,
-            &container.name,
-            format!("{image_name}:{tag}").as_str(),
-        )
-        .await?;
-        container::start(docker, &container.name).await?;
+
+        let image_ref = format!("{image_name}:{tag}");
+        let id = container::create(docker, &image_ref).await?;
+
+        container::start(docker, &id).await?;
+
+        let container = Self { docker, id };
 
         Ok(container)
     }
 
     #[instrument(skip(self))]
     pub async fn stop(&self) -> Result<(), DockerApiError> {
-        container::stop(self.docker, &self.name).await
+        container::stop(self.docker, &self.id).await
     }
 }
