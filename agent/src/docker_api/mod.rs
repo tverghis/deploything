@@ -1,6 +1,7 @@
 use bollard::Docker;
 use tracing::instrument;
 
+pub use crate::docker_api::container::ContainerHostConfig;
 use crate::docker_api::errors::DockerApiError;
 
 mod container;
@@ -18,11 +19,12 @@ impl<'a> Container<'a> {
         docker: &'a Docker,
         image_name: &str,
         tag: &str,
+        host_config: ContainerHostConfig,
     ) -> Result<Self, DockerApiError> {
         image::pull(docker, image_name, tag).await?;
 
         let image_ref = format!("{image_name}:{tag}");
-        let id = container::create(docker, &image_ref).await?;
+        let id = container::create(docker, &image_ref, host_config).await?;
 
         container::start(docker, &id).await?;
 
