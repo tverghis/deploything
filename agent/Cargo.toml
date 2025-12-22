@@ -1,3 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["agent_bin"]
+members = ["agent_bin", "agent_wire"]
