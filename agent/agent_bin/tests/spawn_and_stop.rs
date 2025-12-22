@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use agent::docker_api::{self, ContainerHostConfig};
+use agent_bin::docker_api::{self, ContainerHostConfig};
 use bollard::Docker;
 
 #[tokio::test]

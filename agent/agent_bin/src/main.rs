@@ -1,4 +1,4 @@
-use agent::docker_api::{Container, ContainerHostConfig};
+use agent_bin::docker_api::{Container, ContainerHostConfig};
 
 #[tokio::main]
 async fn main() {
