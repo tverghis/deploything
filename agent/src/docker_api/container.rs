@@ -8,18 +8,18 @@ use bollard::{
 };
 use tracing::{error, info, instrument};
 
-use crate::docker_api::errors::DockerApiError;
+use crate::docker_api::{errors::DockerApiError, image::ImageRef};
 
 #[instrument(skip(docker), ret)]
 pub async fn create(
     docker: &Docker,
-    image_name: &str,
+    image_ref: &ImageRef,
     host_config: ContainerHostConfig,
 ) -> Result<String, DockerApiError> {
     info!("Creating container");
 
     let body = ContainerCreateBody {
-        image: Some(image_name.to_string()),
+        image: Some(image_ref.to_string()),
         host_config: host_config.into(),
         ..Default::default()
     };
@@ -35,7 +35,7 @@ pub async fn create(
         Err(e) => {
             error!("Container create failed: {e}");
             Err(DockerApiError::ContainerCreateFailed {
-                image: image_name.to_string(),
+                image: image_ref.to_string(),
             })
         }
     }

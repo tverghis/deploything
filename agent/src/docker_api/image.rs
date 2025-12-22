@@ -4,8 +4,20 @@ use tracing::{error, info, instrument};
 
 use crate::docker_api::errors::DockerApiError;
 
+#[derive(Debug)]
+pub struct ImageRef {
+    name: String,
+    tag: String,
+}
+
+impl std::fmt::Display for ImageRef {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}", self.name, self.tag)
+    }
+}
+
 #[instrument(skip(docker))]
-pub async fn pull(docker: &Docker, name: &str, tag: &str) -> Result<(), DockerApiError> {
+pub async fn pull(docker: &Docker, name: &str, tag: &str) -> Result<ImageRef, DockerApiError> {
     info!("Pulling image");
     let options = CreateImageOptionsBuilder::new()
         .from_image(name)
@@ -26,5 +38,8 @@ pub async fn pull(docker: &Docker, name: &str, tag: &str) -> Result<(), DockerAp
 
     info!("Pull complete");
 
-    Ok(())
+    Ok(ImageRef {
+        name: name.to_string(),
+        tag: tag.to_string(),
+    })
 }
