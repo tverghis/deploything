@@ -1,5 +1,6 @@
 use agent_bin::cmd::CommandHandler;
-use agent_wire::deploything::v1::RunApplication;
+use agent_wire::deploything::v1::{RemoteCommand, RunParams, StopParams, remote_command::Command};
+use bollard::Docker;
 use tokio_stream::StreamExt;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
@@ -9,9 +10,11 @@ async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let (tx, rx) = tokio::sync::mpsc::channel::<RunApplication>(16);
+    let docker = Docker::connect_with_defaults().unwrap();
+
+    let (tx, rx) = tokio::sync::mpsc::channel::<RemoteCommand>(16);
     tokio::task::spawn(async move {
-        let mut cmd_handler = CommandHandler::new(rx);
+        let mut cmd_handler = CommandHandler::new(&docker, rx);
         cmd_handler.handle_incoming().await;
     });
 
@@ -24,12 +27,29 @@ async fn main() {
                 Message::Text(bytes) => {
                     let text = bytes.as_str();
                     info!("Got message: {text:?} from the server!");
-                    tx.send(RunApplication {
-                        image_name: Some(String::from("mccutchen/go-httpbin")),
-                        tag: Some(String::from("latest")),
-                    })
-                    .await
-                    .unwrap();
+
+                    match text.trim() {
+                        "start" => {
+                            tx.send(RemoteCommand {
+                                command: Some(Command::Run(RunParams {
+                                    image_name: Some(String::from("mccutchen/go-httpbin")),
+                                    tag: Some(String::from("latest")),
+                                })),
+                            })
+                            .await
+                            .unwrap();
+                        }
+                        "stop" => {
+                            tx.send(RemoteCommand {
+                                command: Some(Command::Stop(StopParams {
+                                    container_id: Some(String::from("unknown")),
+                                })),
+                            })
+                            .await
+                            .unwrap();
+                        }
+                        _ => todo!(),
+                    }
                 }
                 Message::Close(_) => {
                     info!("Server closed the connection cleanly.");

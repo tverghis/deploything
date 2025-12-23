@@ -35,4 +35,8 @@ impl<'a> Container<'a> {
     pub async fn stop(&self) -> Result<(), DockerApiError> {
         container::stop(self.docker, &self.id).await
     }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
 }

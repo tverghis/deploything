@@ -1,8 +1,0 @@
-syntax = "proto3";
-
-package deploything.v1;
-
-message RunApplication {
-  optional string image_name = 1;
-  optional string tag = 2;
-}

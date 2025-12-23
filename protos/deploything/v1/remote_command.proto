@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package deploything.v1;
+
+message RemoteCommand {
+  oneof command {
+    RunParams run = 1;
+    StopParams stop = 2;
+  }
+}
+
+message RunParams {
+  optional string image_name = 1;
+  optional string tag = 2;
+}
+
+message StopParams {
+  optional string container_id = 1;
+}
