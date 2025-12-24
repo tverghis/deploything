@@ -39,6 +39,12 @@ impl WsHandler {
         stream: &mut WebSocketStream<MaybeTlsStream<TcpStream>>,
         message: Message,
     ) -> Result<(), WsError> {
+        if message.is_ping() {
+            return Ok(stream.send(Message::Pong(message.into_data())).await?);
+        }
+
+        // TODO: we should probably handle a Close frame.
+
         let Message::Binary(bytes) = message else {
             unimplemented!();
         };
