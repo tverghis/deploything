@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use agent_wire::deploything::v1::remote_command::Command;
+use agent_wire::deploything::v1::{RunParams, StopParams, remote_command::Command};
 use bollard::Docker;
 use tokio::sync::mpsc::Receiver;
-use tracing::{info, instrument, warn};
+use tracing::{instrument, warn};
 
 use crate::{
     cmd::{CommandBundle, CommandResponse},
@@ -30,63 +30,64 @@ impl<'d> CommandHandler<'d> {
     pub async fn handle_incoming(&mut self) {
         while let Some(cmd_bundle) = self.cmd_rx.recv().await {
             let response = match cmd_bundle.command() {
-                Command::Run(params) => {
-                    info!("Received a RunApplication command from the server");
-                    let host_config = ContainerHostConfig::With {
-                        port_map: ("8080/tcp", "8080").into(),
-                    };
-                    match Container::spawn_from_image(
-                        &self.docker,
-                        &params.image_name(),
-                        &params.tag(),
-                        host_config,
-                    )
-                    .await
-                    {
-                        Ok(container) => {
-                            let container_id = container.id().to_string();
-                            self.containers.insert(container_id.clone(), container);
-                            CommandResponse::ContainerStarted { container_id }
-                        }
-                        Err(e) => CommandResponse::Error {
-                            message: format!("Failed to start container: {}", e),
-                        },
-                    }
-                }
-                Command::Stop(params) => {
-                    info!(
-                        "Received a StopApplication command from the server for container: {}",
-                        params.container_id()
-                    );
-
-                    match self.containers.get(params.container_id()) {
-                        Some(container) => {
-                            info!("Stopping container {}", container.id());
-                            match container.stop().await {
-                                Ok(_) => {
-                                    let container_id = params.container_id().to_string();
-                                    self.containers.remove(params.container_id());
-                                    CommandResponse::ContainerStopped { container_id }
-                                }
-                                Err(e) => CommandResponse::Error {
-                                    message: format!("Failed to stop container: {}", e),
-                                },
-                            }
-                        }
-                        None => {
-                            warn!(
-                                "Received stop command for unknown container {}",
-                                params.container_id()
-                            );
-                            CommandResponse::Error {
-                                message: format!("Unknown container: {}", params.container_id()),
-                            }
-                        }
-                    }
-                }
+                Command::Run(params) => self.handle_run_command(params).await,
+                Command::Stop(params) => self.handle_stop_command(params).await,
             };
 
             cmd_bundle.reply(response);
+        }
+    }
+
+    #[instrument(skip(self))]
+    async fn handle_run_command(&mut self, params: &RunParams) -> CommandResponse {
+        // TODO: This should be replaced by user-supplied configuration.
+        let host_config = ContainerHostConfig::With {
+            port_map: ("8080/tcp", "8080").into(),
+        };
+
+        let container = Container::spawn_from_image(
+            &self.docker,
+            &params.image_name(),
+            &params.tag(),
+            host_config,
+        );
+
+        match container.await {
+            Ok(container) => {
+                // FIXME: why do we need to allocate so many of the same strings here?
+                let container_id = container.id().to_string();
+                self.containers.insert(container_id.clone(), container);
+                CommandResponse::ContainerStarted { container_id }
+            }
+            Err(e) => CommandResponse::Error {
+                message: format!("Failed to start container: {e}"),
+            },
+        }
+    }
+
+    #[instrument(skip(self))]
+    async fn handle_stop_command(&mut self, params: &StopParams) -> CommandResponse {
+        let container_id = params.container_id();
+
+        let Some(container) = self.containers.get(container_id) else {
+            // TODO: should we issue the stop command anyway?
+            // Eg: the agent process might have crashed and lost track of the container ID.
+            // If the control plane knows of the container ID, we should probably honor the request.
+            warn!("Received stop command for unknown container {container_id}",);
+            return CommandResponse::Error {
+                message: format!("Unknown container: {container_id}"),
+            };
+        };
+
+        match container.stop().await {
+            Ok(_) => {
+                let container_id = params.container_id().to_string();
+                self.containers.remove(params.container_id());
+                CommandResponse::ContainerStopped { container_id }
+            }
+            Err(e) => CommandResponse::Error {
+                message: format!("Failed to stop container: {e}"),
+            },
         }
     }
 }
