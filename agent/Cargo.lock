@@ -15,6 +15,7 @@ dependencies = [
  "agent_wire",
  "bollard",
  "futures-util",
+ "prost",
  "thiserror",
  "tokio",
  "tokio-stream",
