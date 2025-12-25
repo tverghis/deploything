@@ -7,7 +7,7 @@ use tracing::{instrument, warn};
 
 use crate::{
     cmd::{CommandBundle, CommandResponse},
-    docker_api::{Container, ContainerHostConfig},
+    docker_api::Container,
 };
 
 pub struct CommandHandler<'d> {
@@ -40,16 +40,11 @@ impl<'d> CommandHandler<'d> {
 
     #[instrument(skip(self))]
     async fn handle_run_command(&mut self, params: &RunParams) -> CommandResponse {
-        // TODO: This should be replaced by user-supplied configuration.
-        let host_config = ContainerHostConfig::With {
-            port_map: ("8080/tcp", "8080").into(),
-        };
-
         let container = Container::spawn_from_image(
             &self.docker,
             &params.image_name(),
             &params.tag(),
-            host_config,
+            params.container_host_config.as_ref(),
         );
 
         match container.await {

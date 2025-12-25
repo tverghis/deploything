@@ -1,7 +1,7 @@
+use agent_wire::deploything::v1::ContainerHostConfig;
 use bollard::Docker;
 use tracing::instrument;
 
-pub use crate::docker_api::container::ContainerHostConfig;
 use crate::docker_api::errors::DockerApiError;
 
 mod container;
@@ -19,7 +19,7 @@ impl<'a> Container<'a> {
         docker: &'a Docker,
         image_name: &str,
         tag: &str,
-        host_config: ContainerHostConfig,
+        host_config: Option<&ContainerHostConfig>,
     ) -> Result<Self, DockerApiError> {
         let image_ref = image::pull(docker, image_name, tag).await?;
 

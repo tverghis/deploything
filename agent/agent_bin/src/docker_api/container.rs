@@ -1,10 +1,13 @@
+use std::collections::HashMap;
+
+use agent_wire::deploything::v1::ContainerHostConfig;
 use bollard::{
     Docker,
     models::ContainerCreateBody,
     query_parameters::{
         CreateContainerOptions, StartContainerOptions, StopContainerOptionsBuilder,
     },
-    secret::{HostConfig, PortBinding, PortMap},
+    secret::{HostConfig, PortBinding},
 };
 use tracing::{error, info, instrument};
 
@@ -14,13 +17,15 @@ use crate::docker_api::{errors::DockerApiError, image::ImageRef};
 pub async fn create(
     docker: &Docker,
     image_ref: &ImageRef,
-    host_config: ContainerHostConfig,
+    host_config: Option<&ContainerHostConfig>,
 ) -> Result<String, DockerApiError> {
     info!("Creating container");
 
+    let host_config = create_host_config(host_config);
+
     let body = ContainerCreateBody {
         image: Some(image_ref.to_string()),
-        host_config: host_config.into(),
+        host_config,
         ..Default::default()
     };
 
@@ -83,48 +88,30 @@ pub async fn stop(docker: &Docker, container_id: &str) -> Result<(), DockerApiEr
     }
 }
 
-#[derive(Debug)]
-pub enum ContainerHostConfig {
-    Empty,
-    With { port_map: ContainerPortMap },
-}
+fn create_host_config(from: Option<&ContainerHostConfig>) -> Option<HostConfig> {
+    let Some(from) = from else {
+        return None;
+    };
 
-#[derive(Debug)]
-pub struct ContainerPortMap {
-    from: String,
-    to: String,
-}
+    let mut port_map = HashMap::new();
 
-impl From<(&str, &str)> for ContainerPortMap {
-    fn from((src, dst): (&str, &str)) -> Self {
-        Self {
-            from: src.to_string(),
-            to: dst.to_string(),
-        }
-    }
-}
+    if let Some(pm) = &from.port_map {
+        let from_port = pm.from.as_ref().cloned().unwrap();
+        let to_port = pm.to.as_ref().cloned().unwrap();
 
-impl From<ContainerPortMap> for PortMap {
-    fn from(port_map: ContainerPortMap) -> Self {
-        [(
-            port_map.from,
+        port_map.insert(
+            from_port,
             Some(vec![PortBinding {
-                host_port: Some(port_map.to),
+                host_port: Some(to_port),
                 ..Default::default()
             }]),
-        )]
-        .into()
-    }
-}
+        );
+    };
 
-impl From<ContainerHostConfig> for Option<HostConfig> {
-    fn from(config: ContainerHostConfig) -> Self {
-        match config {
-            ContainerHostConfig::Empty => None,
-            ContainerHostConfig::With { port_map } => Some(HostConfig {
-                port_bindings: Some(port_map.into()),
-                ..Default::default()
-            }),
-        }
-    }
+    let host_config = HostConfig {
+        port_bindings: Some(port_map),
+        ..Default::default()
+    };
+
+    Some(host_config)
 }
