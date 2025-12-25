@@ -29,17 +29,24 @@ class AgentConnection:
         """Check if the connection is closed."""
         return self._closed
 
-    async def send_run_command(self, image_name: str, tag: str | None = None) -> str:
+    async def send_run_command(
+        self,
+        image_name: str,
+        tag: str | None = None,
+        port_mapping: str | None = None,
+    ) -> str:
         """Send a run command to the agent.
 
         Args:
             image_name: Docker image name to run.
             tag: Optional image tag (e.g., "latest").
+            port_mapping: Optional port mapping in format 'container_port[/protocol]:host_port'
+                          e.g., '8080/tcp:8080'
 
         Returns:
             Response from the agent ("ok" or error message).
         """
-        cmd = build_run_command(image_name, tag)
+        cmd = build_run_command(image_name, tag, port_mapping)
         return await self._send_and_receive(cmd)
 
     async def send_stop_command(self, container_id: str) -> str:

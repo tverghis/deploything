@@ -100,18 +100,18 @@ class InteractiveCLI:
         """Print help message."""
         print("""
 Available commands:
-  help              Show this help message
-  run <image> [tag] Send run command (e.g., run nginx latest)
-  stop <id>         Send stop command for a container
-  status            Show connection status
-  list              List containers started this session
-  quit              Exit the CLI
+  help                            Show this help message
+  run <image> [tag] [port_map]    Send run command (e.g., run nginx latest 8080/tcp:8080)
+  stop <id>                       Send stop command for a container
+  status                          Show connection status
+  list                            List containers started this session
+  quit                            Exit the CLI
 """)
 
     async def _cmd_run(self, args: list[str]) -> None:
         """Handle the run command."""
         if not args:
-            print("Usage: run <image> [tag]")
+            print("Usage: run <image> [tag] [port_map]")
             return
 
         connection = self._get_connection()
@@ -121,10 +121,11 @@ Available commands:
 
         image = args[0]
         tag = args[1] if len(args) > 1 else None
+        port_mapping = args[2] if len(args) > 2 else None
 
-        print(f"Sending run command: image={image}, tag={tag or '(none)'}")
+        print(f"Sending run command: image={image}, tag={tag or '(none)'}, port_map={port_mapping or '(none)'}")
         try:
-            response = await connection.send_run_command(image, tag)
+            response = await connection.send_run_command(image, tag, port_mapping)
             print(f"Response: {response}")
             if response == "ok":
                 self._containers.append(f"{image}:{tag or 'latest'}")
