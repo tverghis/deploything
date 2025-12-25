@@ -1,10 +1,26 @@
-use agent_bin::{cmd::CommandHandler, ws::handler::WsHandler};
+use agent_bin::{cli::AgentCli, cmd::CommandHandler, ws::handler::WsHandler};
 use bollard::Docker;
+use clap::Parser;
+use tracing::instrument;
 
 #[tokio::main]
 async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
+
+    let cli = AgentCli::parse();
+
+    match cli.command {
+        agent_bin::cli::Commands::Start {
+            control_plane_hostname,
+            control_plane_port,
+        } => run(&control_plane_hostname, control_plane_port).await,
+    };
+}
+
+#[instrument]
+async fn run(hostname: &str, port: u16) {
+    let uri = format!("ws://{hostname}:{port}");
 
     let docker = Docker::connect_with_defaults().unwrap();
 
@@ -16,7 +32,7 @@ async fn main() {
     });
 
     let ws_handler = tokio::task::spawn(async move {
-        let mut ws_handler = WsHandler::new("ws://localhost:4040", tx);
+        let mut ws_handler = WsHandler::new(&uri, tx);
         ws_handler.connect_and_handle().await.unwrap();
     });
 

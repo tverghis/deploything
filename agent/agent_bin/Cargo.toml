@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 agent_wire = { path = "../agent_wire" }
 bollard = "0.19.4"
+clap = { version = "4.5.53", features = ["derive"] }
 futures-util = { version = "0.3.31", features = ["sink"] }
 prost = "0.14.1"
 thiserror = "2.0.17"
