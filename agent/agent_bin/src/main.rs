@@ -1,4 +1,8 @@
-use agent_bin::{cli::AgentCli, cmd::CommandHandler, ws::receiver::WsReceiver};
+use agent_bin::{
+    cli::AgentCli,
+    cmd::CommandHandler,
+    ws::{receiver::WsReceiver, sender::WsSender},
+};
 use bollard::Docker;
 use clap::Parser;
 use futures_util::StreamExt;
@@ -25,21 +29,28 @@ async fn run(hostname: &str, port: u16) {
 
     let docker = Docker::connect_with_defaults().unwrap();
 
-    let (tx, rx) = tokio::sync::mpsc::channel(16);
+    let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(16);
 
     let cmd_handler = tokio::task::spawn(async move {
-        let mut cmd_handler = CommandHandler::new(&docker, rx);
+        let mut cmd_handler = CommandHandler::new(&docker, cmd_rx);
         cmd_handler.handle_incoming().await;
     });
 
     let (stream, _) = tokio_tungstenite::connect_async(&uri).await.unwrap();
-    let (_sink, stream) = stream.split();
+    let (sink, stream) = stream.split();
+    let (msg_tx, msg_rx) = tokio::sync::mpsc::channel(16);
 
-    let ws_handler = tokio::task::spawn(async move {
-        let mut ws_handler = WsReceiver::new(stream, tx);
-        ws_handler.recv().await.unwrap();
+    let ws_receiver = tokio::task::spawn(async move {
+        let mut receiver = WsReceiver::new(stream, cmd_tx, msg_tx);
+        receiver.recv().await.unwrap();
+    });
+
+    let ws_sender = tokio::task::spawn(async move {
+        let mut sender = WsSender::new(sink, msg_rx);
+        sender.handle().await.unwrap();
     });
 
     cmd_handler.await.unwrap();
-    ws_handler.await.unwrap();
+    ws_receiver.await.unwrap();
+    ws_sender.await.unwrap();
 }

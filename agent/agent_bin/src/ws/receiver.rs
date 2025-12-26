@@ -14,14 +14,19 @@ where
 {
     stream: S,
     cmd_tx: Sender<CommandBundle>,
+    msg_tx: Sender<Message>,
 }
 
 impl<S> WsReceiver<S>
 where
     S: Stream<Item = StreamItem> + Unpin,
 {
-    pub fn new(stream: S, cmd_tx: Sender<CommandBundle>) -> Self {
-        Self { stream, cmd_tx }
+    pub fn new(stream: S, cmd_tx: Sender<CommandBundle>, msg_tx: Sender<Message>) -> Self {
+        Self {
+            stream,
+            cmd_tx,
+            msg_tx,
+        }
     }
 
     #[instrument(skip(self))]
@@ -34,9 +39,9 @@ where
     }
 
     async fn handle_message(&mut self, message: Message) -> Result<(), WsError> {
-        // if message.is_ping() {
-        //     return Ok(self.stream.send(Message::Pong(message.into_data())).await?);
-        // }
+        if message.is_ping() {
+            return Ok(self.msg_tx.send(Message::Pong(message.into_data())).await?);
+        }
 
         // TODO: we should probably handle a Close frame.
 
@@ -51,13 +56,11 @@ where
 
         self.cmd_tx.send(cmd_bundle).await?;
 
-        let _ = match response_rx.await {
+        let resp = match response_rx.await {
             Ok(_) => "ok".to_string(),
             Err(e) => format!("{e}"),
         };
 
-        Ok(())
-
-        // Ok(stream.send(Message::Text(resp.into())).await?)
+        Ok(self.msg_tx.send(Message::Text(resp.into())).await?)
     }
 }
