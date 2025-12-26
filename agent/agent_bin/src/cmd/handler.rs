@@ -38,7 +38,7 @@ impl<'d> CommandHandler<'d> {
         }
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self), ret)]
     async fn handle_run_command(&mut self, params: &RunParams) -> CommandResponse {
         let container = Container::spawn_from_image(
             &self.docker,
@@ -60,7 +60,7 @@ impl<'d> CommandHandler<'d> {
         }
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self), ret)]
     async fn handle_stop_command(&mut self, params: &StopParams) -> CommandResponse {
         let container_id = params.container_id();
 
