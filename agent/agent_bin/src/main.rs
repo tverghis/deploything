@@ -1,6 +1,7 @@
-use agent_bin::{cli::AgentCli, cmd::CommandHandler, ws::handler::WsHandler};
+use agent_bin::{cli::AgentCli, cmd::CommandHandler, ws::receiver::WsReceiver};
 use bollard::Docker;
 use clap::Parser;
+use futures_util::StreamExt;
 use tracing::instrument;
 
 #[tokio::main]
@@ -31,9 +32,12 @@ async fn run(hostname: &str, port: u16) {
         cmd_handler.handle_incoming().await;
     });
 
+    let (stream, _) = tokio_tungstenite::connect_async(&uri).await.unwrap();
+    let (_sink, stream) = stream.split();
+
     let ws_handler = tokio::task::spawn(async move {
-        let mut ws_handler = WsHandler::new(&uri, tx);
-        ws_handler.connect_and_handle().await.unwrap();
+        let mut ws_handler = WsReceiver::new(stream, tx);
+        ws_handler.recv().await.unwrap();
     });
 
     cmd_handler.await.unwrap();
