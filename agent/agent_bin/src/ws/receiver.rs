@@ -1,7 +1,7 @@
 use futures_util::{Stream, StreamExt};
 use tokio::sync::{mpsc::Sender, oneshot};
 use tokio_tungstenite::tungstenite::{self, Message};
-use tracing::instrument;
+use tracing::{error, info, instrument};
 
 use crate::{cmd::CommandBundle, ws::errors::WsError};
 
@@ -56,11 +56,15 @@ where
 
         self.cmd_tx.send(cmd_bundle).await?;
 
-        let resp = match response_rx.await {
-            Ok(_) => "ok".to_string(),
-            Err(e) => format!("{e}"),
+        match response_rx.await {
+            Ok(_) => {
+                info!("Command executed successfully");
+            }
+            Err(e) => {
+                error!("Command execution failed: {e}");
+            }
         };
 
-        Ok(self.msg_tx.send(Message::Text(resp.into())).await?)
+        Ok(())
     }
 }
