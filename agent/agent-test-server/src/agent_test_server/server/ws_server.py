@@ -6,7 +6,7 @@ import asyncio
 
 from websockets.asyncio.server import serve, Server, ServerConnection
 
-from agent_test_server.server.connection import AgentConnection
+from agent_test_server.server.connection import AgentConnection, SnapshotCallback
 
 
 class AgentTestServer:
@@ -18,6 +18,7 @@ class AgentTestServer:
         self._server: Server | None = None
         self._connections: list[AgentConnection] = []
         self._connection_event = asyncio.Event()
+        self._snapshot_callback: SnapshotCallback | None = None
 
     @property
     def host(self) -> str:
@@ -31,6 +32,10 @@ class AgentTestServer:
     def connections(self) -> list[AgentConnection]:
         """List of active agent connections."""
         return list(self._connections)
+
+    def set_snapshot_callback(self, callback: SnapshotCallback | None) -> None:
+        """Set the callback for receiving snapshots from agents."""
+        self._snapshot_callback = callback
 
     async def start(self) -> None:
         """Start the WebSocket server."""
@@ -69,7 +74,7 @@ class AgentTestServer:
 
     async def _handle_connection(self, websocket: ServerConnection) -> None:
         """Handle a new WebSocket connection."""
-        connection = AgentConnection(websocket)
+        connection = AgentConnection(websocket, self._snapshot_callback)
         self._connections.append(connection)
         self._connection_event.set()
 
