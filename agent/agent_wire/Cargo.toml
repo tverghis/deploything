@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 prost = "0.14.1"
+prost-types = { version = "0.14.1", features = ["chrono"] }
 
 [build-dependencies]
 prost-build = "0.14.1"

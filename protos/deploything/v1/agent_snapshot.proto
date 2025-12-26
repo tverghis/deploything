@@ -2,8 +2,11 @@ syntax = "proto3";
 
 package deploything.v1;
 
+import "google/protobuf/timestamp.proto";
+
 message AgentSnapshot {
   repeated ContainerStatus container_status = 1;
+  optional google.protobuf.Timestamp timestamp = 2;
 }
 
 message ContainerStatus {
