@@ -25,12 +25,20 @@ async fn main() {
         agent_bin::cli::Commands::Start {
             control_plane_hostname,
             control_plane_port,
-        } => run(&control_plane_hostname, control_plane_port).await,
+            snapshot_interval_secs,
+        } => {
+            run(
+                &control_plane_hostname,
+                control_plane_port,
+                snapshot_interval_secs,
+            )
+            .await
+        }
     };
 }
 
 #[instrument]
-async fn run(hostname: &str, port: u16) {
+async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
     let uri = format!("ws://{hostname}:{port}");
 
     let docker = Docker::connect_with_defaults().unwrap();
@@ -59,7 +67,7 @@ async fn run(hostname: &str, port: u16) {
 
     let snapshot_updater = tokio::task::spawn(async move {
         loop {
-            tokio::time::sleep(Duration::from_secs(1)).await;
+            tokio::time::sleep(Duration::from_secs(snapshot_interval_secs as u64)).await;
             let snapshot = build_sample_snapshot().encode_to_vec();
             msg_tx.send(Message::Binary(snapshot.into())).await.unwrap();
         }
