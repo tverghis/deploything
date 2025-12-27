@@ -35,7 +35,7 @@ def _format_container(container: ContainerStatus, indent: str = "  ") -> str:
     lines = []
     lines.append(f"{indent}- id: {container.id or '(none)'}")
     lines.append(f"{indent}  name: {container.name or '(none)'}")
-    lines.append(f"{indent}  image: {container.image_ref or '(none)'}")
+    lines.append(f"{indent}  image: {container.image_id or '(none)'}")
     lines.append(f"{indent}  state: {_state_name(container.container_state)}")
     return "\n".join(lines)
 
