@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
-use agent_wire::deploything::v1::ContainerHostConfig;
+use agent_wire::deploything::v1::{ContainerHostConfig, ContainerStatus};
 use bollard::{
     Docker,
     models::ContainerCreateBody,
     query_parameters::{
-        CreateContainerOptions, StartContainerOptions, StopContainerOptionsBuilder,
+        CreateContainerOptions, ListContainersOptionsBuilder, StartContainerOptions,
+        StopContainerOptionsBuilder,
     },
     secret::{HostConfig, PortBinding},
 };
@@ -114,4 +115,21 @@ fn create_host_config(from: Option<&ContainerHostConfig>) -> Option<HostConfig> 
     };
 
     Some(host_config)
+}
+
+#[instrument(skip(docker))]
+pub async fn list(docker: &Docker) -> Result<Vec<ContainerStatus>, DockerApiError> {
+    let options = ListContainersOptionsBuilder::new().all(true).build();
+
+    match docker.list_containers(Some(options)).await {
+        Ok(containers) => {
+            info!("List containers complete");
+            let containers = containers.iter().map(|c| c.into()).collect();
+            Ok(containers)
+        }
+        Err(e) => {
+            error!("List containers failed: {e}");
+            Err(DockerApiError::ListContainersFailed)
+        }
+    }
 }

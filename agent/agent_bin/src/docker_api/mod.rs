@@ -1,5 +1,8 @@
-use agent_wire::deploything::v1::ContainerHostConfig;
+use std::time::SystemTime;
+
+use agent_wire::deploything::v1::{AgentSnapshot, ContainerHostConfig};
 use bollard::Docker;
+use prost_types::Timestamp;
 use tracing::instrument;
 
 use crate::docker_api::errors::DockerApiError;
@@ -39,4 +42,16 @@ impl<'a> Container<'a> {
     pub fn id(&self) -> &str {
         &self.id
     }
+}
+
+#[instrument(skip(docker))]
+pub async fn build_snapshot(docker: &Docker) -> Result<AgentSnapshot, DockerApiError> {
+    let container_status = container::list(docker).await?;
+
+    let snapshot = AgentSnapshot {
+        container_status,
+        timestamp: Some(Timestamp::from(SystemTime::now())),
+    };
+
+    Ok(snapshot)
 }

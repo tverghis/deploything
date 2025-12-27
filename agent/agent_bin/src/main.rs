@@ -1,16 +1,15 @@
-use std::time::{Duration, SystemTime};
+use std::{sync::Arc, time::Duration};
 
 use agent_bin::{
     cli::AgentCli,
     cmd::CommandHandler,
+    docker_api,
     ws::{receiver::WsReceiver, sender::WsSender},
 };
-use agent_wire::deploything::v1::{AgentSnapshot, ContainerState, ContainerStatus};
 use bollard::Docker;
 use clap::Parser;
 use futures_util::StreamExt;
 use prost::Message as _;
-use prost_types::Timestamp;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::instrument;
 
@@ -42,11 +41,13 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
     let uri = format!("ws://{hostname}:{port}");
 
     let docker = Docker::connect_with_defaults().unwrap();
+    let docker = Arc::new(docker);
 
     let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(16);
 
+    let docker1 = docker.clone();
     let cmd_handler = tokio::task::spawn(async move {
-        let mut cmd_handler = CommandHandler::new(&docker, cmd_rx);
+        let mut cmd_handler = CommandHandler::new(&docker1, cmd_rx);
         cmd_handler.handle_incoming().await;
     });
 
@@ -68,7 +69,10 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
     let snapshot_updater = tokio::task::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(snapshot_interval_secs as u64)).await;
-            let snapshot = build_sample_snapshot().encode_to_vec();
+            let snapshot = docker_api::build_snapshot(&docker)
+                .await
+                .unwrap()
+                .encode_to_vec();
             msg_tx.send(Message::Binary(snapshot.into())).await.unwrap();
         }
     });
@@ -77,16 +81,4 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
     ws_receiver.await.unwrap();
     ws_sender.await.unwrap();
     snapshot_updater.await.unwrap();
-}
-
-fn build_sample_snapshot() -> AgentSnapshot {
-    AgentSnapshot {
-        container_status: vec![ContainerStatus {
-            id: Some("foo".into()),
-            name: Some("mycontainer".into()),
-            image_ref: Some("bar:baz".into()),
-            container_state: Some(ContainerState::Running as i32),
-        }],
-        timestamp: Some(Timestamp::from(SystemTime::now())),
-    }
 }
