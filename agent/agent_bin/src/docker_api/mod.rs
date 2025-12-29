@@ -9,10 +9,10 @@ use crate::docker_api::errors::DockerApiError;
 
 mod container;
 mod errors;
-mod handler;
+mod events;
 mod image;
 
-pub use handler::DockerEventsHandler;
+pub use events::DockerEventsHandler;
 
 pub struct Container<'a> {
     docker: &'a Docker,

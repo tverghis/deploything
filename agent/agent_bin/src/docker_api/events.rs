@@ -20,7 +20,7 @@ impl<'a> DockerEventsHandler<'a> {
         let now = SystemTime::now();
         let epoch_time = now
             .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("failed to current epoch time")
+            .expect("failed to get current epoch time")
             .as_secs();
 
         let options = EventsOptionsBuilder::new()
