@@ -45,27 +45,33 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
 
     let (cmd_tx, cmd_rx) = tokio::sync::mpsc::channel(16);
 
-    let docker1 = docker.clone();
-    let cmd_handler = tokio::task::spawn(async move {
-        let mut cmd_handler = CommandHandler::new(&docker1, cmd_rx);
-        cmd_handler.handle_incoming().await;
-    });
+    let cmd_handler = {
+        let docker = docker.clone();
+        tokio::task::spawn(async move {
+            let mut cmd_handler = CommandHandler::new(&docker, cmd_rx);
+            cmd_handler.handle_incoming().await;
+        })
+    };
 
-    let docker2 = docker.clone();
-    let events_monitor = tokio::task::spawn(async move {
-        let mut events_handler = DockerEventsHandler::new(&docker2);
-        let _ = events_handler.listen().await;
-    });
+    let events_monitor = {
+        let docker = docker.clone();
+        tokio::task::spawn(async move {
+            let mut events_handler = DockerEventsHandler::new(&docker);
+            let _ = events_handler.listen().await;
+        })
+    };
 
     let (stream, _) = tokio_tungstenite::connect_async(&uri).await.unwrap();
     let (sink, stream) = stream.split();
     let (msg_tx, msg_rx) = tokio::sync::mpsc::channel(16);
 
-    let msg_tx2 = msg_tx.clone();
-    let ws_receiver = tokio::task::spawn(async move {
-        let mut receiver = WsReceiver::new(stream, cmd_tx, msg_tx2);
-        receiver.recv().await.unwrap();
-    });
+    let ws_receiver = {
+        let msg_tx = msg_tx.clone();
+        tokio::task::spawn(async move {
+            let mut receiver = WsReceiver::new(stream, cmd_tx, msg_tx);
+            receiver.recv().await.unwrap();
+        })
+    };
 
     let ws_sender = tokio::task::spawn(async move {
         let mut sender = WsSender::new(sink, msg_rx);
