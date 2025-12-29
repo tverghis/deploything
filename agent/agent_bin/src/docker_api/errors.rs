@@ -16,4 +16,7 @@ pub enum DockerApiError {
 
     #[error("failed to list containers")]
     ListContainersFailed,
+
+    #[error("failed to start monitoring events")]
+    MonitorEventsFailed,
 }

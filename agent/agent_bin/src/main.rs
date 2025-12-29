@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use agent_bin::{
     cli::AgentCli,
     cmd::CommandHandler,
-    docker_api,
+    docker_api::{self, DockerEventsHandler},
     ws::{receiver::WsReceiver, sender::WsSender},
 };
 use bollard::Docker;
@@ -51,6 +51,12 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
         cmd_handler.handle_incoming().await;
     });
 
+    let docker2 = docker.clone();
+    let events_monitor = tokio::task::spawn(async move {
+        let mut events_handler = DockerEventsHandler::new(&docker2);
+        let _ = events_handler.listen().await;
+    });
+
     let (stream, _) = tokio_tungstenite::connect_async(&uri).await.unwrap();
     let (sink, stream) = stream.split();
     let (msg_tx, msg_rx) = tokio::sync::mpsc::channel(16);
@@ -78,6 +84,7 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
     });
 
     cmd_handler.await.unwrap();
+    events_monitor.await.unwrap();
     ws_receiver.await.unwrap();
     ws_sender.await.unwrap();
     snapshot_updater.await.unwrap();
