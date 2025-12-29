@@ -24,9 +24,13 @@ pub async fn create(
 
     let host_config = create_host_config(host_config);
 
+    let mut labels = HashMap::new();
+    labels.insert("deployth.ing/managed".to_string(), "true".to_string());
+
     let body = ContainerCreateBody {
         image: Some(image_ref.to_string()),
         host_config,
+        labels: Some(labels),
         ..Default::default()
     };
 
