@@ -8,7 +8,7 @@ use agent_bin::{
 };
 use bollard::Docker;
 use clap::Parser;
-use futures_util::StreamExt;
+use futures_util::{StreamExt, future::join_all};
 use prost::Message as _;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::instrument;
@@ -89,9 +89,13 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
         }
     });
 
-    cmd_handler.await.unwrap();
-    events_monitor.await.unwrap();
-    ws_receiver.await.unwrap();
-    ws_sender.await.unwrap();
-    snapshot_updater.await.unwrap();
+    let tasks = vec![
+        cmd_handler,
+        events_monitor,
+        ws_receiver,
+        ws_sender,
+        snapshot_updater,
+    ];
+
+    join_all(tasks).await;
 }
