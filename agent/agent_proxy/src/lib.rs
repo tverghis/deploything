@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use tracing::warn;
+
 #[derive(Debug)]
 struct Service {
     name: String,
@@ -28,6 +30,10 @@ impl RouteMatchBuilder {
             hostname: None,
             path: None,
         };
+
+        if matches!((&self.hostname, &self.path), (None, None)) {
+            warn!("Building a RouteMatch with None hostname and path!");
+        }
 
         if let Some(h) = self.hostname.take() {
             matcher.hostname = Some(h);

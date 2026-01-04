@@ -30,6 +30,9 @@ dependencies = [
 [[package]]
 name = "agent_proxy"
 version = "0.1.0"
+dependencies = [
+ "tracing",
+]
 
 [[package]]
 name = "agent_wire"
