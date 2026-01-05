@@ -1,3 +1,7 @@
 [workspace]
 resolver = "3"
 members = ["agent_bin", "agent_proxy", "agent_wire"]
+
+[workspace.dependencies]
+agent_proxy = { path = "./agent_proxy" }
+agent_wire  = { path = "./agent_wire" }

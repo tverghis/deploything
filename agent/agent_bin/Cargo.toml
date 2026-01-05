@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-agent_wire = { path = "../agent_wire" }
+agent_wire  = { workspace = true }
+agent_proxy = { workspace = true }
 bollard = "0.19.4"
 clap = { version = "4.5.53", features = ["derive"] }
 futures-util = { version = "0.3.31", features = ["sink"] }
