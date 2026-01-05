@@ -27,11 +27,13 @@ async fn main() {
             control_plane_hostname,
             control_plane_port,
             snapshot_interval_secs,
+            proxy_port,
         } => {
             run(
                 &control_plane_hostname,
                 control_plane_port,
                 snapshot_interval_secs,
+                proxy_port,
             )
             .await
         }
@@ -39,7 +41,7 @@ async fn main() {
 }
 
 #[instrument]
-async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
+async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16, proxy_port: u16) {
     let uri = format!("ws://{hostname}:{port}");
 
     let docker = Docker::connect_with_defaults().unwrap();
@@ -93,7 +95,8 @@ async fn run(hostname: &str, port: u16, snapshot_interval_secs: u16) {
 
     let proxy_serve = tokio::task::spawn(async move {
         let proxy = ReverseProxy::new();
-        let listener = TcpListener::bind("localhost:3000").await.unwrap();
+        let addr = format!("localhost:{proxy_port}");
+        let listener = TcpListener::bind(addr).await.unwrap();
         proxy.serve(listener).await;
     });
 
