@@ -12,3 +12,12 @@ pub struct Service {
     name: String,
     port: u16,
 }
+
+impl Service {
+    pub fn new(name: &str, port: u16) -> Self {
+        Self {
+            name: name.to_string(),
+            port,
+        }
+    }
+}
