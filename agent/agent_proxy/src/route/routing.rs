@@ -98,3 +98,34 @@ impl RouteTable {
         None
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::route::RouteMatchBuilder;
+
+    #[test]
+    fn route_match_matches_hostname() {
+        let rm = RouteMatchBuilder::new().hostname("example.com").build();
+        assert!(rm.matches("example.com", "/foo/bar"));
+        assert!(!rm.matches("other-example.com", "/foo/bar"));
+    }
+
+    #[test]
+    fn route_match_matches_path() {
+        let rm = RouteMatchBuilder::new().path("/foo/bar").build();
+        assert!(rm.matches("example.com", "/foo/bar"));
+        assert!(!rm.matches("example.com", "/bar/baz"));
+    }
+
+    #[test]
+    fn route_match_matches_both() {
+        let rm = RouteMatchBuilder::new()
+            .hostname("example.com")
+            .path("/foo/bar")
+            .build();
+        assert!(rm.matches("example.com", "/foo/bar"));
+        assert!(!rm.matches("example.com", "/bar/baz"));
+        assert!(!rm.matches("other-example.com", "/foo/bar"));
+        assert!(!rm.matches("other-example.com", "/bar/baz"));
+    }
+}
