@@ -1,6 +1,8 @@
-mod routing;
+mod matcher;
+mod table;
 
-pub use routing::*;
+pub use matcher::*;
+pub use table::*;
 
 /// `Service` describes an upstream application that can be routed to.
 /// Right now, all we care about is the port - we assume that all applications
