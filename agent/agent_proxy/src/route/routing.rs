@@ -34,6 +34,16 @@ impl RouteMatchBuilder {
         Self::default()
     }
 
+    pub fn hostname(mut self, hostname: &str) -> Self {
+        self.hostname = Some(hostname.to_string());
+        self
+    }
+
+    pub fn path(mut self, path: &str) -> Self {
+        self.path = Some(path.to_string());
+        self
+    }
+
     pub fn build(mut self) -> RouteMatch {
         let mut matcher = RouteMatch {
             hostname: None,
