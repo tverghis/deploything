@@ -4,7 +4,7 @@ use tracing::warn;
 /// A request must match _both_ criteria specified in order the `RouteMatch` to be considered matched.
 /// It is technically not an error if a `RouteMatch` has both `hostname` and `path` set to `None`, but
 /// such an instance is functionally useless.
-#[derive(Debug, Hash, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RouteMatch {
     hostname: Option<String>,
     path: Option<String>,
